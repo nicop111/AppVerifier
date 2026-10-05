@@ -195,18 +195,20 @@ fun VerifyAppScreen(
                     "More info about internal database status",
                 )
             }
-            if (internalDatabaseInfo.internalDatabaseStatus == InternalDatabaseStatus.MATCH) {
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    "Sources:",
-                    style = typography.labelLarge,
-                )
-                Text(
-                    internalDatabaseInfo.sources.joinToString(" · ") { it.displayName },
-                    style = typography.bodyLarge,
-                    textAlign = TextAlign.Center,
-                )
-            }
+            Spacer(Modifier.height(8.dp))
+            Text(
+                "Sources:",
+                style = typography.labelLarge,
+            )
+            Text(
+                if (internalDatabaseInfo.internalDatabaseStatus == InternalDatabaseStatus.NOT_FOUND) {
+                    "-"
+                } else {
+                    internalDatabaseInfo.sources.joinToString(" · ") { it.displayName }
+                },
+                style = typography.bodyLarge,
+                textAlign = TextAlign.Center,
+            )
             // Only set when verification info was shared to AppVerifier, so hide it otherwise.
             if (verificationStatus != VerificationStatus.UNKNOWN) {
                 Spacer(Modifier.height(16.dp))

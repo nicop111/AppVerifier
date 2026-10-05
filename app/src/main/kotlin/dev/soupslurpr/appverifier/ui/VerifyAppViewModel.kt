@@ -232,6 +232,10 @@ class VerifyAppViewModel(application: Application) : AndroidViewModel(applicatio
                 return@run InternalDatabaseInfo(InternalDatabaseStatus.NOT_FOUND, listOf(Source.NONE))
             }
 
+            // On a mismatch, report all sources known for this app so the user can see where the expected hashes are
+            // from.
+            val allSources = packageNameMatchedInternalDatabaseVerificationInfo.hashesList.flatMap { it.sources }.distinct()
+
             return@run if (verificationInfo.hashes.hasMultipleSigners) { // Has multiple signers
                 val maybeMatchedHashes = packageNameMatchedInternalDatabaseVerificationInfo.hashesList.find {
                     it ==
@@ -240,7 +244,7 @@ class VerifyAppViewModel(application: Application) : AndroidViewModel(applicatio
                 if (maybeMatchedHashes != null) {
                     InternalDatabaseInfo(InternalDatabaseStatus.MATCH, maybeMatchedHashes.sources)
                 } else {
-                    InternalDatabaseInfo(InternalDatabaseStatus.NOMATCH, listOf(Source.NONE))
+                    InternalDatabaseInfo(InternalDatabaseStatus.NOMATCH, allSources)
                 }
             } else {
                 packageNameMatchedInternalDatabaseVerificationInfo
@@ -261,7 +265,7 @@ class VerifyAppViewModel(application: Application) : AndroidViewModel(applicatio
                             }
                         }
                     }
-                return InternalDatabaseInfo(InternalDatabaseStatus.NOMATCH, listOf(Source.NONE))
+                return InternalDatabaseInfo(InternalDatabaseStatus.NOMATCH, allSources)
             }
         }
     }

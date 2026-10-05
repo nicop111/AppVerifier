@@ -22,10 +22,13 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme.typography
 import androidx.compose.material3.Text
@@ -44,6 +47,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat.startActivity
 import com.google.accompanist.drawablepainter.rememberDrawablePainter
@@ -60,12 +64,10 @@ fun VerifyAppScreen(
     hashes: Hashes,
     verificationStatus: VerificationStatus,
     appNotFound: Boolean,
-    onVerifyFromClipboard: (String) -> Unit,
     onLaunchedEffectHashEmpty: () -> Unit,
     internalDatabaseInfo: InternalDatabaseInfo,
     apkFailedToParse: Boolean,
     showHasMultipleSigners: Boolean,
-    showClipboardEmptyMessage: () -> Unit,
 ) {
     val context = LocalContext.current
 
@@ -109,41 +111,30 @@ fun VerifyAppScreen(
                         "\n\nThere may be multiple hashes, which is normal."
             )
         } else {
-            Text(
-                "Internal Database Status:"
-            )
-            Row {
-                FilledTonalButton(
-                    onClick = { showMoreInfoAboutInternalDatabaseStatusDialog = true },
-                ) {
-                    Text(
-                        internalDatabaseInfo.internalDatabaseStatus.simpleInternalDatabaseStatus.name.replace('_', ' '),
-                        style = typography.headlineLarge
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    Icon(
-                        Icons.Default.Info,
-                        "More info about internal database status",
-                        tint = internalDatabaseInfo.internalDatabaseStatus.simpleInternalDatabaseStatus.color,
-                    )
-                }
-            }
-            Spacer(Modifier.height(8.dp))
             if (icon != null) {
                 Image(
                     rememberDrawablePainter(drawable = icon),
                     null,
-                    Modifier.size(150.dp),
+                    Modifier.size(96.dp),
                 )
             }
+            Spacer(Modifier.height(8.dp))
             Text(
                 text = name,
-                style = typography.titleLarge
+                style = typography.titleLarge,
+                textAlign = TextAlign.Center,
             )
-            Text(text = packageName)
+            Text(
+                text = packageName,
+                style = typography.bodyMedium,
+                textAlign = TextAlign.Center,
+            )
+            Spacer(Modifier.height(8.dp))
             Text(
                 text = hashes.hashes.joinToString("\n"),
-                fontFamily = FontFamily.Monospace
+                style = typography.bodySmall,
+                fontFamily = FontFamily.Monospace,
+                textAlign = TextAlign.Center,
             )
             if (showHasMultipleSigners) {
                 Text(
@@ -154,49 +145,80 @@ fun VerifyAppScreen(
                     fontWeight = FontWeight.Black
                 )
             }
+            Spacer(Modifier.height(16.dp))
             val verificationData = "$packageName\n${hashes.hashes.joinToString("\n")}"
             val mimeType = "text/plain"
-            Button(onClick = {
-                val sendIntent = Intent().apply {
-                    action = Intent.ACTION_SEND
-                    putExtra(Intent.EXTRA_TEXT, verificationData)
-                    type = mimeType
-                }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(onClick = {
+                    val sendIntent = Intent().apply {
+                        action = Intent.ACTION_SEND
+                        putExtra(Intent.EXTRA_TEXT, verificationData)
+                        type = mimeType
+                    }
 
-                val shareIntent = Intent.createChooser(
-                    sendIntent,
-                    null,
-                )
+                    val shareIntent = Intent.createChooser(
+                        sendIntent,
+                        null,
+                    )
 
-                startActivity(context, shareIntent, ActivityOptions.makeBasic().toBundle())
-            }) {
-                Text("Share Verification Info")
-            }
-            Button(onClick = {
-                val clip: ClipData = ClipData.newPlainText(mimeType, verificationData)
-                clipboardManager.setClip(ClipEntry(clip));
-            }) {
-                Text("Copy Verification Info")
-            }
-            Button(onClick = {
-                if (clipboardManager.hasText()) {
-                    onVerifyFromClipboard(clipboardManager.getText()!!.text)
-                } else {
-                    showClipboardEmptyMessage()
+                    startActivity(context, shareIntent, ActivityOptions.makeBasic().toBundle())
+                }) {
+                    Icon(Icons.Default.Share, null, Modifier.size(18.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text("Share")
                 }
-            }) {
-                Text("Verify from clipboard")
+                FilledTonalButton(onClick = {
+                    val clip: ClipData = ClipData.newPlainText(mimeType, verificationData)
+                    clipboardManager.setClip(ClipEntry(clip))
+                }) {
+                    Icon(Icons.Default.ContentCopy, null, Modifier.size(18.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text("Copy")
+                }
             }
+            HorizontalDivider(Modifier.padding(vertical = 16.dp))
             Text(
-                "Verification Status:",
+                "Internal Database Status:"
             )
-            Row {
+            FilledTonalButton(
+                onClick = { showMoreInfoAboutInternalDatabaseStatusDialog = true },
+            ) {
+                InternalDatabaseStatusIcon(internalDatabaseInfo.internalDatabaseStatus)
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    internalDatabaseInfo.internalDatabaseStatus.simpleInternalDatabaseStatus.name.replace('_', ' '),
+                    style = typography.titleLarge
+                )
+                Spacer(Modifier.width(8.dp))
+                Icon(
+                    Icons.Default.Info,
+                    "More info about internal database status",
+                )
+            }
+            if (internalDatabaseInfo.internalDatabaseStatus == InternalDatabaseStatus.MATCH) {
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    "Sources:",
+                    style = typography.labelLarge,
+                )
+                Text(
+                    internalDatabaseInfo.sources.joinToString(" · ") { it.displayName },
+                    style = typography.bodyLarge,
+                    textAlign = TextAlign.Center,
+                )
+            }
+            // Only set when verification info was shared to AppVerifier, so hide it otherwise.
+            if (verificationStatus != VerificationStatus.UNKNOWN) {
+                Spacer(Modifier.height(16.dp))
+                Text(
+                    "Verification Status:",
+                )
                 FilledTonalButton(
                     onClick = { showMoreInfoAboutVerificationStatusDialog = true },
                 ) {
                     Text(
                         verificationStatus.simpleVerificationStatus.name,
-                        style = typography.headlineLarge
+                        style = typography.titleLarge
                     )
                     Spacer(Modifier.width(8.dp))
                     Icon(

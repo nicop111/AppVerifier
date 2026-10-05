@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -29,19 +30,23 @@ import androidx.compose.material3.DockedSearchBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
-import androidx.compose.material3.ListItem
+import androidx.compose.material3.MaterialTheme.colorScheme
+import androidx.compose.material3.MaterialTheme.typography
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SearchBarDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import com.google.accompanist.drawablepainter.rememberDrawablePainter
@@ -50,6 +55,7 @@ import dev.soupslurpr.appverifier.data.InternalDatabaseInfo
 import dev.soupslurpr.appverifier.data.InternalDatabaseStatus
 import dev.soupslurpr.appverifier.data.SimpleVerificationStatus
 import dev.soupslurpr.appverifier.data.VerificationInfo
+import java.text.Collator
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -73,14 +79,23 @@ fun AppListScreen(
 
     val packageManager: PackageManager = context.packageManager
 
-    val systemPackages = packageManager.getInstalledPackages(PackageManager.MATCH_SYSTEM_ONLY)
+    // User installed apps paired with their names, sorted from A to Z.
+    val userInstalledApps = remember {
+        val systemPackageNames = packageManager.getInstalledPackages(PackageManager.MATCH_SYSTEM_ONLY)
+            .map { it.packageName }
+            .toSet()
 
-    val userInstalledPackages = packageManager.getInstalledPackages(0)
-
-    userInstalledPackages.removeIf { userInstalledPackage ->
-        userInstalledPackage.packageName == systemPackages.firstOrNull {
-            it.packageName == userInstalledPackage.packageName
-        }?.packageName
+        packageManager.getInstalledPackages(0)
+            .filter {
+                it.packageName !in systemPackageNames &&
+                        // Do not show AppVerifier in the list as there is no point in using it to verify itself.
+                        it.packageName != context.packageName
+            }
+            .map { packageInfo ->
+                packageInfo to (packageInfo.applicationInfo?.let { packageManager.getApplicationLabel(it).toString() }
+                    ?: null.toString())
+            }
+            .sortedWith(compareBy(Collator.getInstance()) { it.second })
     }
 
     LaunchedEffect(key1 = Unit) {
@@ -144,22 +159,15 @@ fun AppListScreen(
                 innerPadding.calculateEndPadding(LayoutDirection.Ltr)
             )
         ) {
-            items(userInstalledPackages) {
-                // Do not show AppVerifier in the list as there is no point in using it to verify itself.
-                if (it.packageName == context.packageName) return@items
-
-                val packageInfo = packageManager.getPackageInfo(
-                    it.packageName,
-                    PackageManager.GET_SIGNING_CERTIFICATES
-                )
-                val name = packageInfo.applicationInfo?.let { it1 ->
-                    packageManager.getApplicationLabel(it1)
-                        .toString()
-                } ?: null.toString()
-
+            items(userInstalledApps, key = { it.first.packageName }) { (it, name) ->
                 if (searchQuery == "" || name.contains(searchQuery, true) ||
                     it.packageName.contains(searchQuery, true))
                 {
+                    val packageInfo = packageManager.getPackageInfo(
+                        it.packageName,
+                        PackageManager.GET_SIGNING_CERTIFICATES
+                    )
+
                     val hashes = getHashesFromPackageInfo(packageInfo)
 
                     val verificationInfo = VerificationInfo(packageInfo.packageName, hashes)
@@ -204,27 +212,37 @@ fun AppItem(
     ) -> Unit,
     internalDatabaseInfo: InternalDatabaseInfo,
 ) {
-    ListItem(
-        modifier = Modifier.clickable {
-            onClickAppItem(name, packageName, hashes, icon, internalDatabaseInfo)
-        },
-        headlineContent = {
-            Text(name)
-        },
-        overlineContent = {
-            Text(packageName)
-        },
-        leadingContent = {
-            Image(
-                rememberDrawablePainter(drawable = icon),
-                null,
-                Modifier.size(50.dp),
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clickable { onClickAppItem(name, packageName, hashes, icon, internalDatabaseInfo) }
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Image(
+            rememberDrawablePainter(drawable = icon),
+            null,
+            Modifier.size(40.dp),
+        )
+        Spacer(Modifier.width(16.dp))
+        Column(Modifier.weight(1f)) {
+            Text(
+                name,
+                style = typography.bodyLarge,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
-        },
-        trailingContent = {
-            InternalDatabaseStatusIcon(internalDatabaseInfo.internalDatabaseStatus)
+            Text(
+                packageName,
+                style = typography.bodySmall,
+                color = colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
         }
-    )
+        Spacer(Modifier.width(16.dp))
+        InternalDatabaseStatusIcon(internalDatabaseInfo.internalDatabaseStatus)
+    }
 }
 
 @Composable

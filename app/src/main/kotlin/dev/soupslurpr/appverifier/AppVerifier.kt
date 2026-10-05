@@ -24,7 +24,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -51,7 +50,6 @@ import dev.soupslurpr.appverifier.ui.SettingsScreen
 import dev.soupslurpr.appverifier.ui.StartupScreen
 import dev.soupslurpr.appverifier.ui.VerifyAppScreen
 import dev.soupslurpr.appverifier.ui.VerifyAppViewModel
-import kotlinx.coroutines.launch
 
 enum class AppVerifierScreens(@StringRes val title: Int) {
     Start(title = R.string.app_name),
@@ -83,8 +81,6 @@ fun AppVerifierApp(
     val verifyAppUiState = verifyAppViewModel.uiState.collectAsState()
 
     val snackbarHostState = remember { SnackbarHostState() }
-
-    val snackbarCoroutineScope = rememberCoroutineScope()
 
     val navController = rememberNavController()
 
@@ -183,16 +179,10 @@ fun AppVerifierApp(
                     verifyAppUiState.value.hashes.value,
                     verifyAppUiState.value.verificationStatus.value,
                     verifyAppUiState.value.appNotFoundOrInvalidFormat.value,
-                    { verifyAppViewModel.verifyFromText(it) },
                     { navController.navigateUp() },
                     verifyAppUiState.value.internalDatabaseInfo.value,
                     verifyAppUiState.value.apkFailedToParse.value,
                     preferencesUiState.value.showHasMultipleSigners.second.value,
-                    {
-                        snackbarCoroutineScope.launch {
-                            snackbarHostState.showSnackbar("Clipboard is empty!")
-                        }
-                    }
                 )
             }
             composableWithDefaultSlideTransitions(route = AppVerifierScreens.Settings) {

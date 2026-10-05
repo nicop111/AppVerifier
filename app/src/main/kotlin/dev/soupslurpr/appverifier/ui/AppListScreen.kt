@@ -117,11 +117,7 @@ fun AppListScreen(
             .toSet()
 
         packageManager.getInstalledPackages(PackageManager.GET_SIGNING_CERTIFICATES)
-            .filter {
-                it.packageName !in systemPackageNames &&
-                        // Do not show AppVerifier in the list as there is no point in using it to verify itself.
-                        it.packageName != context.packageName
-            }
+            .filter { it.packageName !in systemPackageNames }
             .map { packageInfo ->
                 val hashes = getHashesFromPackageInfo(packageInfo)
                 AppListEntry(

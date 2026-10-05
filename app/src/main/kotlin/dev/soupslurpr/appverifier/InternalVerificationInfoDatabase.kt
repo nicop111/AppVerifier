@@ -2055,6 +2055,9 @@ val internalVerificationInfoDatabase = setOf(
             )
         )
     ),
+    
+    // new entries
+    
     InternalDatabaseVerificationInfo(
         "com.pcloud.pcloud",
         listOf(
@@ -2064,6 +2067,20 @@ val internalVerificationInfoDatabase = setOf(
                 ),
                 listOf(
                     "B6:5C:9C:B8:36:28:78:F8:CC:20:95:C8:12:F6:8F:55:85:2C:08:7A:2E:0E:4C:D4:F2:58:38:15:02:E7:7B:B5"
+                ),
+                false
+            )
+        )
+    ),
+    InternalDatabaseVerificationInfo(
+        "dev.nicop111.appverifier",
+        listOf(
+            Hashes(
+                listOf(
+                    Source.GITHUB
+                ),
+                listOf(
+                    "49:CE:D3:2C:24:B3:DF:74:44:87:E0:36:72:1C:6A:78:3E:20:19:AD:C6:8C:73:1F:F1:C2:1B:19:8F:5A:60:15"
                 ),
                 false
             )

@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Help
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Verified
@@ -183,7 +184,13 @@ fun AppItem(
         },
         trailingContent = {
             when (internalDatabaseInfo.internalDatabaseStatus) {
-                InternalDatabaseStatus.NOT_FOUND -> null
+                InternalDatabaseStatus.NOT_FOUND -> Icon(
+                    Icons.AutoMirrored.Filled.Help,
+                    "Not found in internal database",
+                    Modifier,
+                    SimpleVerificationStatus.UNKNOWN.color,
+                )
+
                 InternalDatabaseStatus.MATCH -> Icon(
                     Icons.Filled.Verified,
                     "Verified successfully with internal database",

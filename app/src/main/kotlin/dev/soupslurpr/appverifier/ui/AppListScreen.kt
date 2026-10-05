@@ -6,6 +6,7 @@ import android.content.pm.PackageManager
 import android.graphics.drawable.Drawable
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -21,6 +22,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Help
 import androidx.compose.material.icons.filled.Error
@@ -57,6 +59,13 @@ import dev.soupslurpr.appverifier.data.SimpleVerificationStatus
 import dev.soupslurpr.appverifier.data.VerificationInfo
 import java.text.Collator
 
+private class AppListEntry(
+    val name: String,
+    val packageInfo: PackageInfo,
+    val hashes: Hashes,
+    val internalDatabaseInfo: InternalDatabaseInfo,
+)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AppListScreen(
@@ -79,23 +88,31 @@ fun AppListScreen(
 
     val packageManager: PackageManager = context.packageManager
 
-    // User installed apps paired with their names, sorted from A to Z.
+    // User installed apps with their verification info, sorted from A to Z.
     val userInstalledApps = remember {
         val systemPackageNames = packageManager.getInstalledPackages(PackageManager.MATCH_SYSTEM_ONLY)
             .map { it.packageName }
             .toSet()
 
-        packageManager.getInstalledPackages(0)
+        packageManager.getInstalledPackages(PackageManager.GET_SIGNING_CERTIFICATES)
             .filter {
                 it.packageName !in systemPackageNames &&
                         // Do not show AppVerifier in the list as there is no point in using it to verify itself.
                         it.packageName != context.packageName
             }
             .map { packageInfo ->
-                packageInfo to (packageInfo.applicationInfo?.let { packageManager.getApplicationLabel(it).toString() }
-                    ?: null.toString())
+                val hashes = getHashesFromPackageInfo(packageInfo)
+                AppListEntry(
+                    name = packageInfo.applicationInfo?.let { packageManager.getApplicationLabel(it).toString() }
+                        ?: null.toString(),
+                    packageInfo = packageInfo,
+                    hashes = hashes,
+                    internalDatabaseInfo = getInternalDatabaseInfoFromVerificationInfo(
+                        VerificationInfo(packageInfo.packageName, hashes)
+                    ),
+                )
             }
-            .sortedWith(compareBy(Collator.getInstance()) { it.second })
+            .sortedWith(compareBy(Collator.getInstance()) { it.name })
     }
 
     LaunchedEffect(key1 = Unit) {
@@ -104,6 +121,18 @@ fun AppListScreen(
 
     // Internal database statuses to show. Empty means no filter, so all apps are shown.
     var statusFilter by rememberSaveable { mutableStateOf(setOf<InternalDatabaseStatus>()) }
+
+    val searchedApps = userInstalledApps.filter {
+        searchQuery == "" || it.name.contains(searchQuery, true) ||
+                it.packageInfo.packageName.contains(searchQuery, true)
+    }
+
+    // Counts follow the search query so they match what each filter would show.
+    val statusCounts = searchedApps.groupingBy { it.internalDatabaseInfo.internalDatabaseStatus }.eachCount()
+
+    val shownApps = searchedApps.filter {
+        statusFilter.isEmpty() || it.internalDatabaseInfo.internalDatabaseStatus in statusFilter
+    }
 
     Scaffold(
         topBar = {
@@ -130,7 +159,9 @@ fun AppListScreen(
                     colors = colors1
                 ) {}
                 Row(
-                    Modifier.padding(16.dp, 0.dp, 16.dp, 8.dp),
+                    Modifier
+                        .horizontalScroll(rememberScrollState())
+                        .padding(16.dp, 0.dp, 16.dp, 8.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     listOf(
@@ -144,7 +175,7 @@ fun AppListScreen(
                             onClick = {
                                 statusFilter = if (selected) statusFilter - status else statusFilter + status
                             },
-                            label = { Text(label) },
+                            label = { Text("$label (${statusCounts[status] ?: 0})") },
                             leadingIcon = { InternalDatabaseStatusIcon(status, Modifier.size(18.dp)) },
                         )
                     }
@@ -159,36 +190,17 @@ fun AppListScreen(
                 innerPadding.calculateEndPadding(LayoutDirection.Ltr)
             )
         ) {
-            items(userInstalledApps, key = { it.first.packageName }) { (it, name) ->
-                if (searchQuery == "" || name.contains(searchQuery, true) ||
-                    it.packageName.contains(searchQuery, true))
-                {
-                    val packageInfo = packageManager.getPackageInfo(
-                        it.packageName,
-                        PackageManager.GET_SIGNING_CERTIFICATES
-                    )
-
-                    val hashes = getHashesFromPackageInfo(packageInfo)
-
-                    val verificationInfo = VerificationInfo(packageInfo.packageName, hashes)
-
-                    val internalDatabaseInfo = getInternalDatabaseInfoFromVerificationInfo(verificationInfo)
-
-                    if (statusFilter.isNotEmpty() &&
-                        internalDatabaseInfo.internalDatabaseStatus !in statusFilter
-                    ) return@items
-
-                    AppItem(
-                        name = name,
-                        packageName = packageInfo.packageName,
-                        hashes = hashes,
-                        icon = packageManager.getApplicationIcon(
-                            packageInfo.applicationInfo ?: ApplicationInfo()
-                        ),
-                        onClickAppItem = onClickAppItem,
-                        internalDatabaseInfo = internalDatabaseInfo,
-                    )
-                }
+            items(shownApps, key = { it.packageInfo.packageName }) {
+                AppItem(
+                    name = it.name,
+                    packageName = it.packageInfo.packageName,
+                    hashes = it.hashes,
+                    icon = packageManager.getApplicationIcon(
+                        it.packageInfo.applicationInfo ?: ApplicationInfo()
+                    ),
+                    onClickAppItem = onClickAppItem,
+                    internalDatabaseInfo = it.internalDatabaseInfo,
+                )
             }
             item {
                 Spacer(Modifier.padding(WindowInsets.navigationBars.asPaddingValues()))

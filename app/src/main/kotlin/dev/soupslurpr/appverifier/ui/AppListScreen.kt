@@ -6,6 +6,9 @@ import android.content.pm.PackageManager
 import android.graphics.drawable.Drawable
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
@@ -24,6 +27,7 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Verified
 import androidx.compose.material3.DockedSearchBar
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.Scaffold
@@ -31,6 +35,10 @@ import androidx.compose.material3.SearchBarDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -79,29 +87,54 @@ fun AppListScreen(
         onLaunchedEffect()
     }
 
+    // Internal database statuses to show. Empty means no filter, so all apps are shown.
+    var statusFilter by rememberSaveable { mutableStateOf(setOf<InternalDatabaseStatus>()) }
+
     Scaffold(
         topBar = {
-            val colors1 = SearchBarDefaults.colors()
-            DockedSearchBar(
-                inputField = {
-                    SearchBarDefaults.InputField(
-                        query = searchQuery,
-                        onQueryChange = onQueryChange,
-                        onSearch = onSearch,
-                        expanded = false,
-                        onExpandedChange = onSearchActiveChange,
-                        placeholder = { Text(stringResource(android.R.string.search_go)) },
-                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-                        colors = colors1.inputFieldColors,
-                    )
-                },
-                expanded = false,
-                onExpandedChange = onSearchActiveChange,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp, 8.dp),
-                colors = colors1
-            ) {}
+            Column {
+                val colors1 = SearchBarDefaults.colors()
+                DockedSearchBar(
+                    inputField = {
+                        SearchBarDefaults.InputField(
+                            query = searchQuery,
+                            onQueryChange = onQueryChange,
+                            onSearch = onSearch,
+                            expanded = false,
+                            onExpandedChange = onSearchActiveChange,
+                            placeholder = { Text(stringResource(android.R.string.search_go)) },
+                            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                            colors = colors1.inputFieldColors,
+                        )
+                    },
+                    expanded = false,
+                    onExpandedChange = onSearchActiveChange,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp, 8.dp),
+                    colors = colors1
+                ) {}
+                Row(
+                    Modifier.padding(16.dp, 0.dp, 16.dp, 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    listOf(
+                        InternalDatabaseStatus.MATCH to "Verified",
+                        InternalDatabaseStatus.NOT_FOUND to "Unknown",
+                        InternalDatabaseStatus.NOMATCH to "Mismatched",
+                    ).forEach { (status, label) ->
+                        val selected = status in statusFilter
+                        FilterChip(
+                            selected = selected,
+                            onClick = {
+                                statusFilter = if (selected) statusFilter - status else statusFilter + status
+                            },
+                            label = { Text(label) },
+                            leadingIcon = { InternalDatabaseStatusIcon(status, Modifier.size(18.dp)) },
+                        )
+                    }
+                }
+            }
         }
     ) { innerPadding ->
         LazyColumn(
@@ -131,6 +164,12 @@ fun AppListScreen(
 
                     val verificationInfo = VerificationInfo(packageInfo.packageName, hashes)
 
+                    val internalDatabaseInfo = getInternalDatabaseInfoFromVerificationInfo(verificationInfo)
+
+                    if (statusFilter.isNotEmpty() &&
+                        internalDatabaseInfo.internalDatabaseStatus !in statusFilter
+                    ) return@items
+
                     AppItem(
                         name = name,
                         packageName = packageInfo.packageName,
@@ -139,7 +178,7 @@ fun AppListScreen(
                             packageInfo.applicationInfo ?: ApplicationInfo()
                         ),
                         onClickAppItem = onClickAppItem,
-                        internalDatabaseInfo = getInternalDatabaseInfoFromVerificationInfo(verificationInfo),
+                        internalDatabaseInfo = internalDatabaseInfo,
                     )
                 }
             }
@@ -183,28 +222,33 @@ fun AppItem(
             )
         },
         trailingContent = {
-            when (internalDatabaseInfo.internalDatabaseStatus) {
-                InternalDatabaseStatus.NOT_FOUND -> Icon(
-                    Icons.AutoMirrored.Filled.Help,
-                    "Not found in internal database",
-                    Modifier,
-                    SimpleVerificationStatus.UNKNOWN.color,
-                )
-
-                InternalDatabaseStatus.MATCH -> Icon(
-                    Icons.Filled.Verified,
-                    "Verified successfully with internal database",
-                    Modifier,
-                    SimpleVerificationStatus.SUCCESS.color,
-                )
-
-                InternalDatabaseStatus.NOMATCH -> Icon(
-                    Icons.Filled.Error,
-                    "Verification with internal database NOT successful!",
-                    Modifier,
-                    SimpleVerificationStatus.FAILURE.color,
-                )
-            }
+            InternalDatabaseStatusIcon(internalDatabaseInfo.internalDatabaseStatus)
         }
     )
+}
+
+@Composable
+fun InternalDatabaseStatusIcon(status: InternalDatabaseStatus, modifier: Modifier = Modifier) {
+    when (status) {
+        InternalDatabaseStatus.NOT_FOUND -> Icon(
+            Icons.AutoMirrored.Filled.Help,
+            "Not found in internal database",
+            modifier,
+            SimpleVerificationStatus.UNKNOWN.color,
+        )
+
+        InternalDatabaseStatus.MATCH -> Icon(
+            Icons.Filled.Verified,
+            "Verified successfully with internal database",
+            modifier,
+            SimpleVerificationStatus.SUCCESS.color,
+        )
+
+        InternalDatabaseStatus.NOMATCH -> Icon(
+            Icons.Filled.Error,
+            "Verification with internal database NOT successful!",
+            modifier,
+            SimpleVerificationStatus.FAILURE.color,
+        )
+    }
 }

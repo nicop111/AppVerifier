@@ -2055,4 +2055,18 @@ val internalVerificationInfoDatabase = setOf(
             )
         )
     ),
+    InternalDatabaseVerificationInfo(
+        "com.pcloud.pcloud",
+        listOf(
+            Hashes(
+                listOf(
+                    Source.GOOGLE_PLAY_STORE
+                ),
+                listOf(
+                    "B6:5C:9C:B8:36:28:78:F8:CC:20:95:C8:12:F6:8F:55:85:2C:08:7A:2E:0E:4C:D4:F2:58:38:15:02:E7:7B:B5"
+                ),
+                false
+            )
+        )
+    ),
 )

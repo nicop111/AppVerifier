@@ -11,7 +11,7 @@ android {
     ndkVersion = "28.1.13356709"
 
     defaultConfig {
-        applicationId = "dev.soupslurpr.appverifier"
+        applicationId = "dev.nicop111.appverifier"
         minSdk = 28
         targetSdk = 35
         versionCode = 13

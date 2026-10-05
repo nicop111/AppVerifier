@@ -47,12 +47,10 @@ import dev.soupslurpr.appverifier.ui.DonationScreen
 import dev.soupslurpr.appverifier.ui.LicenseScreen
 import dev.soupslurpr.appverifier.ui.PrivacyPolicyScreen
 import dev.soupslurpr.appverifier.ui.SettingsScreen
-import dev.soupslurpr.appverifier.ui.StartupScreen
 import dev.soupslurpr.appverifier.ui.VerifyAppScreen
 import dev.soupslurpr.appverifier.ui.VerifyAppViewModel
 
 enum class AppVerifierScreens(@StringRes val title: Int) {
-    Start(title = R.string.app_name),
     AppList(title = R.string.app_list),
     VerifyApp(title = R.string.verify_app),
     Settings(title = R.string.settings),
@@ -87,7 +85,7 @@ fun AppVerifierApp(
 //    val backStackEntry by navController.currentBackStackEntryAsState()
 
 //    val currentScreen = AppVerifierScreens.valueOf(
-//        backStackEntry?.destination?.route ?: AppVerifierScreens.Start.name
+//        backStackEntry?.destination?.route ?: AppVerifierScreens.AppList.name
 //    )
 
     val context = LocalContext.current
@@ -121,7 +119,7 @@ fun AppVerifierApp(
             startDestination = if (isActionSend || isActionView) {
                 AppVerifierScreens.VerifyApp.name
             } else {
-                AppVerifierScreens.Start.name
+                AppVerifierScreens.AppList.name
             },
             modifier = modifier.padding(
                 innerPadding.calculateStartPadding(LocalLayoutDirection.current),
@@ -129,26 +127,6 @@ fun AppVerifierApp(
                 innerPadding.calculateEndPadding(LocalLayoutDirection.current)
             ),
         ) {
-            composableWithDefaultSlideTransitions(route = AppVerifierScreens.Start) {
-                StartupScreen(
-                    modifier = modifier,
-                    onSettingsButtonClicked = {
-                        navController.navigate(AppVerifierScreens.Settings.name)
-                    },
-                    onAppListButtonClicked = {
-                        navController.navigate(AppVerifierScreens.AppList.name)
-                    },
-                    onVerifyApkFileButtonClicked = {
-                        openApkFileLauncher.launch(arrayOf("application/vnd.android.package-archive"))
-                    },
-                    onLaunchedEffect = {
-                        // clear VerifyAppUiState when exiting VerifyAppScreen from opening an apk and going back to StartupScreen.
-                        verifyAppViewModel.clearUiState()
-                        // clear searchQuery when going back to StartupScreen.
-                        searchQuery = ""
-                    }
-                )
-            }
             composableWithDefaultSlideTransitions(route = AppVerifierScreens.AppList) {
                 AppListScreen(
                     searchQuery,
@@ -168,7 +146,13 @@ fun AppVerifierApp(
                     { },
                     { },
                     { verifyAppViewModel.getHashesFromPackageInfo(it) },
-                    { verifyAppViewModel.getInternalDatabaseInfoFromVerificationInfo(it) }
+                    { verifyAppViewModel.getInternalDatabaseInfoFromVerificationInfo(it) },
+                    onVerifyApkFileClicked = {
+                        openApkFileLauncher.launch(arrayOf("application/vnd.android.package-archive"))
+                    },
+                    onSettingsClicked = {
+                        navController.navigate(AppVerifierScreens.Settings.name)
+                    },
                 )
             }
             composableWithDefaultSlideTransitions(route = AppVerifierScreens.VerifyApp) {

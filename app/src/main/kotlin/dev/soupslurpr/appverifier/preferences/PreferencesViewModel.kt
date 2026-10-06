@@ -22,6 +22,13 @@ class PreferencesViewModel(private val dataStore: DataStore<Preferences>) : View
     private val _uiState = MutableStateFlow(PreferencesUiState())
     val uiState: StateFlow<PreferencesUiState> = _uiState.asStateFlow()
 
+    /**
+     * Whether the settings have been read from the Preferences DataStore yet. Until then, uiState only holds the
+     * defaults, which would e.g. briefly show the privacy policy and license screen to users who already accepted it.
+     */
+    private val _isLoaded = MutableStateFlow(false)
+    val isLoaded: StateFlow<Boolean> = _isLoaded.asStateFlow()
+
     init {
         viewModelScope.launch {
             populateSettingsFromDatastore()
@@ -59,6 +66,7 @@ class PreferencesViewModel(private val dataStore: DataStore<Preferences>) : View
                     ),
                 )
             }
+            _isLoaded.value = true
         }.collect()
     }
 

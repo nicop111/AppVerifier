@@ -72,10 +72,14 @@ class MainActivity : ComponentActivity() {
 
             val preferencesUiState by preferencesViewModel.uiState.collectAsState()
 
+            val arePreferencesLoaded by preferencesViewModel.isLoaded.collectAsState()
+
             AppVerifierTheme(
                 preferencesViewModel = preferencesViewModel
             ) {
-                if (!preferencesUiState.acceptedPrivacyPolicyAndLicense.second.value) {
+                if (!arePreferencesLoaded) {
+                    // Show nothing until we know whether the privacy policy and license were already accepted.
+                } else if (!preferencesUiState.acceptedPrivacyPolicyAndLicense.second.value) {
                     ReviewPrivacyPolicyAndLicense(preferencesViewModel = preferencesViewModel)
                 } else if (preferencesUiState.acceptedPrivacyPolicyAndLicense.second.value) {
                     AppVerifierApp(

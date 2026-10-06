@@ -7,9 +7,11 @@ import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
 import android.graphics.drawable.Drawable
 import android.net.Uri
+import android.os.Build
 import androidx.lifecycle.AndroidViewModel
 import dev.soupslurpr.appverifier.Source
 import dev.soupslurpr.appverifier.data.Hashes
+import dev.soupslurpr.appverifier.data.InstallSource
 import dev.soupslurpr.appverifier.data.InternalDatabaseInfo
 import dev.soupslurpr.appverifier.data.InternalDatabaseStatus
 import dev.soupslurpr.appverifier.data.VerificationInfo
@@ -45,6 +47,41 @@ class VerifyAppViewModel(application: Application) : AndroidViewModel(applicatio
 
     fun setAppIcon(icon: Drawable) {
         _uiState.value.icon.value = icon
+    }
+
+    fun setInstallSource(installSource: InstallSource?) {
+        _uiState.value.installSource.value = installSource
+    }
+
+    fun getInstallSource(packageName: String, packageManager: PackageManager): InstallSource? {
+        val (installerPackageName, initiatorPackageName) = try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                packageManager.getInstallSourceInfo(packageName).run {
+                    installingPackageName to initiatingPackageName
+                }
+            } else {
+                @Suppress("DEPRECATION")
+                packageManager.getInstallerPackageName(packageName) to null
+            }
+        } catch (e: PackageManager.NameNotFoundException) {
+            return null
+        } catch (e: IllegalArgumentException) {
+            return null
+        }
+
+        fun labelOf(packageName: String): String = try {
+            val label = packageManager.getApplicationLabel(packageManager.getApplicationInfo(packageName, 0))
+            "$label ($packageName)"
+        } catch (e: PackageManager.NameNotFoundException) {
+            packageName
+        }
+
+        return InstallSource(
+            installer = installerPackageName?.let { labelOf(it) } ?: "Unknown (e.g. installed via ADB)",
+            initiator = initiatorPackageName
+                ?.takeIf { it != installerPackageName && it != packageName }
+                ?.let { labelOf(it) },
+        )
     }
 
     fun verifyFromText(text: String) {
@@ -208,6 +245,7 @@ class VerifyAppViewModel(application: Application) : AndroidViewModel(applicatio
                     getInternalDatabaseInfoFromVerificationInfo(VerificationInfo(packageName, hashes)),
                 )
                 setAppIcon(packageManager.getApplicationIcon(applicationInfo))
+                setInstallSource(getInstallSource(packageInfo.packageName, packageManager))
             } else {
                 setAppNotFoundOrInvalidFormat(true)
             }
@@ -317,6 +355,7 @@ class VerifyAppViewModel(application: Application) : AndroidViewModel(applicatio
                 getInternalDatabaseInfoFromVerificationInfo(VerificationInfo(packageName, hashes)),
             )
             setAppIcon(packageManager.getApplicationIcon(applicationInfo))
+            setInstallSource(null)
 
             val isFileDeleted = tempFile.delete()
 

@@ -21,6 +21,19 @@ data class VerifyAppUiState(
         )
     ),
     val searchQuery: MutableState<String> = mutableStateOf(""),
+    /**
+     * Only set for installed apps. Null when verifying an APK file, since the installed version (if any) may differ.
+     */
+    val installSource: MutableState<InstallSource?> = mutableStateOf(null),
+)
+
+/**
+ * Display names of the app that installed the package and, if different, the app that initiated the install
+ * (e.g. a browser or file manager that handed the APK to the system package installer).
+ */
+data class InstallSource(
+    val installer: String,
+    val initiator: String?,
 )
 
 

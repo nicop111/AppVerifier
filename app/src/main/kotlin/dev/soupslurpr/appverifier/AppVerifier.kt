@@ -139,6 +139,9 @@ fun AppVerifierApp(
                             internalDatabaseInfo
                         )
                         verifyAppViewModel.setAppIcon(icon)
+                        verifyAppViewModel.setInstallSource(
+                            verifyAppViewModel.getInstallSource(packageName, context.packageManager)
+                        )
                         navController.navigate(AppVerifierScreens.VerifyApp.name)
                     },
                     { verifyAppViewModel.clearUiState() },
@@ -167,6 +170,7 @@ fun AppVerifierApp(
                     verifyAppUiState.value.internalDatabaseInfo.value,
                     verifyAppUiState.value.apkFailedToParse.value,
                     preferencesUiState.value.showHasMultipleSigners.second.value,
+                    verifyAppUiState.value.installSource.value,
                 )
             }
             composableWithDefaultSlideTransitions(route = AppVerifierScreens.Settings) {

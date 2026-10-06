@@ -1,9 +1,11 @@
 package dev.soupslurpr.appverifier.ui
 
 import android.app.ActivityOptions
-import android.content.ClipData
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.graphics.drawable.Drawable
+import android.net.Uri
+import android.provider.Settings
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -22,8 +24,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -37,12 +39,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.ClipEntry
-import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
@@ -52,6 +53,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat.startActivity
 import com.google.accompanist.drawablepainter.rememberDrawablePainter
 import dev.soupslurpr.appverifier.data.Hashes
+import dev.soupslurpr.appverifier.data.InstallSource
 import dev.soupslurpr.appverifier.data.InternalDatabaseInfo
 import dev.soupslurpr.appverifier.data.InternalDatabaseStatus
 import dev.soupslurpr.appverifier.data.VerificationStatus
@@ -68,10 +70,19 @@ fun VerifyAppScreen(
     internalDatabaseInfo: InternalDatabaseInfo,
     apkFailedToParse: Boolean,
     showHasMultipleSigners: Boolean,
+    installSource: InstallSource?,
 ) {
     val context = LocalContext.current
 
-    val clipboardManager = LocalClipboardManager.current
+    // Also true when verifying an APK file whose package is installed, so its app info can still be opened.
+    val isInstalled = remember(packageName) {
+        try {
+            context.packageManager.getPackageInfo(packageName, 0)
+            true
+        } catch (e: PackageManager.NameNotFoundException) {
+            false
+        }
+    }
 
     val verticalScroll = rememberScrollState()
 
@@ -145,6 +156,25 @@ fun VerifyAppScreen(
                     fontWeight = FontWeight.Black
                 )
             }
+            if (installSource != null) {
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    "Installed by:",
+                    style = typography.labelLarge,
+                )
+                Text(
+                    installSource.installer,
+                    style = typography.bodyMedium,
+                    textAlign = TextAlign.Center,
+                )
+                if (installSource.initiator != null) {
+                    Text(
+                        "Initiated by: ${installSource.initiator}",
+                        style = typography.bodySmall,
+                        textAlign = TextAlign.Center,
+                    )
+                }
+            }
             Spacer(Modifier.height(16.dp))
             val verificationData = "$packageName\n${hashes.hashes.joinToString("\n")}"
             val mimeType = "text/plain"
@@ -167,13 +197,19 @@ fun VerifyAppScreen(
                     Spacer(Modifier.width(8.dp))
                     Text("Share")
                 }
-                FilledTonalButton(onClick = {
-                    val clip: ClipData = ClipData.newPlainText(mimeType, verificationData)
-                    clipboardManager.setClip(ClipEntry(clip))
-                }) {
-                    Icon(Icons.Default.ContentCopy, null, Modifier.size(18.dp))
-                    Spacer(Modifier.width(8.dp))
-                    Text("Copy")
+                if (isInstalled) {
+                    FilledTonalButton(onClick = {
+                        val appInfoIntent = Intent(
+                            Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                            Uri.fromParts("package", packageName, null),
+                        )
+
+                        startActivity(context, appInfoIntent, ActivityOptions.makeBasic().toBundle())
+                    }) {
+                        Icon(Icons.Outlined.Info, null, Modifier.size(18.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text("App info")
+                    }
                 }
             }
             HorizontalDivider(Modifier.padding(vertical = 16.dp))

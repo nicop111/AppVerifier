@@ -31,6 +31,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Help
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.FileOpen
+import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
@@ -104,6 +105,7 @@ fun AppListScreen(
     getHashesFromPackageInfo: (packageInfo: PackageInfo) -> Hashes,
     getInternalDatabaseInfoFromVerificationInfo: (verification: VerificationInfo) -> InternalDatabaseInfo,
     onVerifyApkFileClicked: () -> Unit,
+    onSigningKeysClicked: () -> Unit,
     onSettingsClicked: () -> Unit,
 ) {
     val context = LocalContext.current
@@ -193,6 +195,16 @@ fun AppListScreen(
                     },
                     modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding),
                     icon = { Icon(Icons.Filled.FileOpen, null) },
+                )
+                NavigationDrawerItem(
+                    label = { Text(stringResource(R.string.signing_keys)) },
+                    selected = false,
+                    onClick = {
+                        drawerCoroutineScope.launch { drawerState.close() }
+                        onSigningKeysClicked()
+                    },
+                    modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding),
+                    icon = { Icon(Icons.Filled.Key, null) },
                 )
                 NavigationDrawerItem(
                     label = { Text(stringResource(R.string.settings)) },

@@ -47,12 +47,14 @@ import dev.soupslurpr.appverifier.ui.DonationScreen
 import dev.soupslurpr.appverifier.ui.LicenseScreen
 import dev.soupslurpr.appverifier.ui.PrivacyPolicyScreen
 import dev.soupslurpr.appverifier.ui.SettingsScreen
+import dev.soupslurpr.appverifier.ui.SigningKeysScreen
 import dev.soupslurpr.appverifier.ui.VerifyAppScreen
 import dev.soupslurpr.appverifier.ui.VerifyAppViewModel
 
 enum class AppVerifierScreens(@StringRes val title: Int) {
     AppList(title = R.string.app_list),
     VerifyApp(title = R.string.verify_app),
+    SigningKeys(title = R.string.signing_keys),
     Settings(title = R.string.settings),
     License(title = R.string.license),
     PrivacyPolicy(title = R.string.privacy_policy),
@@ -153,6 +155,9 @@ fun AppVerifierApp(
                     onVerifyApkFileClicked = {
                         openApkFileLauncher.launch(arrayOf("application/vnd.android.package-archive"))
                     },
+                    onSigningKeysClicked = {
+                        navController.navigate(AppVerifierScreens.SigningKeys.name)
+                    },
                     onSettingsClicked = {
                         navController.navigate(AppVerifierScreens.Settings.name)
                     },
@@ -172,6 +177,9 @@ fun AppVerifierApp(
                     preferencesUiState.value.showHasMultipleSigners.second.value,
                     verifyAppUiState.value.installSource.value,
                 )
+            }
+            composableWithDefaultSlideTransitions(route = AppVerifierScreens.SigningKeys) {
+                SigningKeysScreen()
             }
             composableWithDefaultSlideTransitions(route = AppVerifierScreens.Settings) {
                 SettingsScreen(

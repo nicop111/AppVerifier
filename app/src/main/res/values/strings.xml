@@ -25,6 +25,7 @@
     <string name="continue_to_app" translatable="false">Continue</string>
     <string name="verify_app">Verify App</string>
     <string name="app_list">App List</string>
+    <string name="signing_keys">Signing Keys</string>
     <string name="donation">Donation</string>
     <string name="donation_setting_name">Donation</string>
     <string name="donation_setting_description">View how to donate to AppVerifier\'s lead developer in-app</string>

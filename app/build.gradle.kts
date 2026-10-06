@@ -14,7 +14,7 @@ android {
         applicationId = "dev.nicop111.appverifier"
         minSdk = 28
         targetSdk = 35
-        versionCode = 13
+        versionCode = 20261006
         versionName = versionCode.toString()
 
         vectorDrawables {

@@ -43,7 +43,6 @@ fun SettingsScreen(
     onPrivacyPolicyIconButtonClicked: () -> Unit,
     onCreditsIconButtonClicked: () -> Unit,
     preferencesViewModel: PreferencesViewModel,
-    onDonationSettingsItemClicked: () -> Unit,
 ) {
     val localUriHandler = LocalUriHandler.current
     val preferencesUiState by preferencesViewModel.uiState.collectAsState()
@@ -105,7 +104,7 @@ fun SettingsScreen(
                 description = stringResource(id = R.string.view_source_code_setting_description),
                 hasIcon = true,
                 onClickIconSetting = {
-                    localUriHandler.openUri("https://github.com/soupslurpr/AppVerifier")
+                    localUriHandler.openUri("https://github.com/nicop111/AppVerifier")
                 },
                 icon = {
                     Icon(
@@ -147,18 +146,6 @@ fun SettingsScreen(
                     Icon(
                         imageVector = Icons.Filled.Info,
                         contentDescription = null
-                    )
-                }
-            )
-            SettingsItem(
-                stringResource(R.string.donation_setting_name),
-                stringResource(R.string.donation_setting_description),
-                hasIcon = true,
-                onClickIconSetting = { onDonationSettingsItemClicked() },
-                icon = {
-                    Icon(
-                        Icons.Filled.Info,
-                        null
                     )
                 }
             )
